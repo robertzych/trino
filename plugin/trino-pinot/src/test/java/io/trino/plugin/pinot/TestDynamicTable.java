@@ -101,17 +101,18 @@ public class TestDynamicTable
                 LIMIT 60\
                 """.formatted(tableName);
 
+        String jsonPredicate = "JSON_MATCH(json, '\"$.origin\" in (''jfk'')')";
         String expected =
                 """
                 SELECT "FlightNum", "AirlineID"\
                  FROM %s\
-                 WHERE OR(AND("CancellationCode" IN ('strike', 'weather', 'pilot_bac'), ("Origin") = 'jfk'),\
+                 WHERE (%s) AND (OR(AND("CancellationCode" IN ('strike', 'weather', 'pilot_bac'), ("Origin") = 'jfk'),\
                  AND(("OriginCityName") != 'catfish paradise', ("OriginState") != 'az', ("AirTime") BETWEEN '1' AND '5', "AirTime" NOT IN ('7', '8', '9')),\
-                 AND(("DepDelayMinutes") < '10', ("Distance") >= '3', ("ArrDelay") > '4', ("SecurityDelay") < '5', ("LateAircraftDelay") <= '7'))\
+                 AND(("DepDelayMinutes") < '10', ("Distance") >= '3', ("ArrDelay") > '4', ("SecurityDelay") < '5', ("LateAircraftDelay") <= '7')))\
                  LIMIT 60\
-                 """.formatted(tableName);
+                 """.formatted(tableName, jsonPredicate);
         DynamicTable dynamicTable = buildFromPql(pinotMetadata, new SchemaTableName("default", query), mockClusterInfoFetcher, TESTING_TYPE_CONVERTER);
-        assertThat(extractPql(dynamicTable, TupleDomain.all(), Optional.empty())).isEqualTo(expected);
+        assertThat(extractPql(dynamicTable, TupleDomain.all(), Optional.of(jsonPredicate))).isEqualTo(expected);
     }
 
     @Test
